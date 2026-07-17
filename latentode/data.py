@@ -90,14 +90,18 @@ def make_dataset(system="oscillator", n_train=256, n_test=64, T=60, dt_base=0.1,
     for split, n, sd in [("train", n_train, seed), ("test", n_test, seed + 1000)]:
         states, times = generate_states(system, n, T, dt_base, jitter=jitter, seed=sd)
         states_t = torch.from_numpy(states)
-        obs = lift(states_t)
-        obs = obs + noise_std * torch.randn(obs.shape, generator=torch.Generator().manual_seed(sd))
-        out[split] = {"obs": obs, "times": torch.from_numpy(times), "states": states_t}
+        clean = lift(states_t)
+        obs = clean + noise_std * torch.randn(clean.shape, generator=torch.Generator().manual_seed(sd))
+        out[split] = {"obs": obs, "obs_clean": clean,
+                      "times": torch.from_numpy(times), "states": states_t}
 
+    # Normalize with noisy-train stats; clean obs share the same coordinates so
+    # "RMSE vs clean" is measured in the same space the models operate in.
     mean = out["train"]["obs"].reshape(-1, n_obs).mean(0)
     std = out["train"]["obs"].reshape(-1, n_obs).std(0).clamp_min(1e-6)
     for split in ("train", "test"):
         out[split]["obs"] = (out[split]["obs"] - mean) / std
+        out[split]["obs_clean"] = (out[split]["obs_clean"] - mean) / std
     out["norm"] = {"mean": mean, "std": std}
     out["meta"] = {"system": system, "T": T, "dt_base": dt_base, "n_obs": n_obs,
                    "noise_std": noise_std, "jitter": jitter}

@@ -135,8 +135,8 @@ def train_obs_space_model(model, data, context=10, epochs=200, batch_size=128,
 
 
 @torch.no_grad()
-def obs_space_forecast_rmse(model, data, context=10, split="test"):
+def obs_space_forecast_rmse(model, data, context=10, split="test", target="obs"):
     obs, times = data[split]["obs"], data[split]["times"]
     preds = model.forecast(obs, times, context)
-    err = ((preds - obs[:, context:]) ** 2).mean(dim=(0, 2)).sqrt()
+    err = ((preds - data[split][target][:, context:]) ** 2).mean(dim=(0, 2)).sqrt()
     return {"per_step_rmse": err.tolist(), "mean_rmse": err.mean().item()}

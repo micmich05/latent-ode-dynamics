@@ -93,8 +93,28 @@ acciones bajo sampling irregular.
   del probe (~0.15) indica que casi todo el error nuestro es del *readout*
   post-hoc, no de la dinámica aprendida. La comparación decisiva es H2 (ruido).
 
-- **Fase 2** — H2 (robustez a ruido de observación vs Latent ODE con decoder),
-  después serie real irregular (PhysioNet) o forecasting estándar (ETT).
+- **Fase 2 (hecha)** — H2: sweep de ruido de observación con $`s=0.9`$ fijo,
+  RMSE medido contra la señal **limpia** (los modelos solo ven la ruidosa):
+
+  | ruido (% varianza) | 0% | 7% | 33% | 60% | 78% |
+  |---|---|---|---|---|---|
+  | ours | 0.149 | 0.156 | 0.181 | 0.165 | 0.211 |
+  | Latent ODE + decoder | **0.071** | **0.084** | **0.127** | **0.157** | **0.166** |
+
+  ![robustez a ruido](assets/phase2_oscillator_noise.png)
+
+  **H2 parcialmente soportada, sin cruce**: el mecanismo aparece — el Latent ODE
+  con decoder degrada 2.3× más rápido (+133% vs +41% de RMSE) y en 60% de ruido
+  quedan empatados — pero nuestro handicap constante de readout (probe post-hoc,
+  piso ~0.15) impide que el orden se invierta en este rango. La comparación en
+  espacio de observaciones conflata calidad de la *dinámica* con calidad del
+  *readout*; el siguiente experimento debería comparar en espacio de estado
+  (probe ridge $`z \to`$ estado verdadero bajo ruido), que es independiente del
+  readout. Caveat: una sola seed (la curva nuestra es no-monótona por varianza
+  de entrenamiento); un writeup serio necesita 3+ seeds con barras de error.
+
+- **Fase 3** — H2 en espacio de estado + multi-seed; después serie real
+  irregular (PhysioNet) o forecasting estándar (ETT).
 
 ## Correr
 

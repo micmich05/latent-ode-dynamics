@@ -51,22 +51,25 @@ def train_decoder_probe(model, data, hidden=128, epochs=200, lr=1e-3, seed=0):
 
 
 @torch.no_grad()
-def forecast_rmse(model, decoder, data, context=10, split="test"):
+def forecast_rmse(model, decoder, data, context=10, split="test", target="obs"):
     """Encode obs at t=context-1, roll the field to the end, decode, RMSE per horizon step.
 
     Also returns the reconstruction RMSE (decode the *encoded* future latents),
     which lower-bounds what forecasting through the field can achieve.
+    target="obs_clean" measures error against the noise-free signal (H2): the
+    model still only ever SEES noisy obs.
     """
     obs, times = data[split]["obs"], data[split]["times"]
+    tgt = data[split][target]
     z_ctx = model.encode(obs[:, context - 1])
     dts = times[:, context:] - times[:, context - 1:-1]
     z_roll = model.rollout(z_ctx, dts)                    # [B, T-context, d]
     obs_pred = decoder(z_roll)
-    err = ((obs_pred - obs[:, context:]) ** 2).mean(dim=(0, 2)).sqrt()  # per-step RMSE
+    err = ((obs_pred - tgt[:, context:]) ** 2).mean(dim=(0, 2)).sqrt()  # per-step RMSE
 
     z_enc = model.encode(obs[:, context:])
     recon = decoder(z_enc)
-    recon_rmse = ((recon - obs[:, context:]) ** 2).mean().sqrt().item()
+    recon_rmse = ((recon - tgt[:, context:]) ** 2).mean().sqrt().item()
     return {"per_step_rmse": err.tolist(), "mean_rmse": err.mean().item(),
             "recon_rmse": recon_rmse}
 
