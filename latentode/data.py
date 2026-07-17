@@ -42,13 +42,17 @@ def _rk4_step(f, s, dt):
     return s + dt[..., None] / 6.0 * (k1 + 2 * k2 + 2 * k3 + k4)
 
 
-def generate_states(system, n_traj, T, dt_base, irregular=False, jitter=(0.2, 1.8), seed=0):
-    """Integrate the true system. Returns states [n_traj, T, 2], times [n_traj, T]."""
+def generate_states(system, n_traj, T, dt_base, jitter=0.0, seed=0):
+    """Integrate the true system. Returns states [n_traj, T, 2], times [n_traj, T].
+
+    jitter s in [0, 1) controls sampling irregularity: dt ~ dt_base * U(1-s, 1+s).
+    Mean dt stays dt_base, so total horizon is comparable across s.
+    """
     rng = np.random.default_rng(seed)
     spec = SYSTEMS[system]
     s = spec["init"](rng, n_traj)
-    if irregular:
-        dts = dt_base * rng.uniform(*jitter, size=(n_traj, T - 1))
+    if jitter > 0:
+        dts = dt_base * rng.uniform(1 - jitter, 1 + jitter, size=(n_traj, T - 1))
     else:
         dts = np.full((n_traj, T - 1), dt_base)
 
@@ -79,12 +83,12 @@ class RandomLift:
 
 
 def make_dataset(system="oscillator", n_train=256, n_test=64, T=60, dt_base=0.1,
-                 n_obs=50, noise_std=0.02, irregular=False, seed=0):
+                 n_obs=50, noise_std=0.02, jitter=0.0, seed=0):
     """Returns dict with obs/times/states tensors for train and test, plus norm stats."""
     lift = RandomLift(n_obs=n_obs)
     out = {}
     for split, n, sd in [("train", n_train, seed), ("test", n_test, seed + 1000)]:
-        states, times = generate_states(system, n, T, dt_base, irregular=irregular, seed=sd)
+        states, times = generate_states(system, n, T, dt_base, jitter=jitter, seed=sd)
         states_t = torch.from_numpy(states)
         obs = lift(states_t)
         obs = obs + noise_std * torch.randn(obs.shape, generator=torch.Generator().manual_seed(sd))
@@ -96,5 +100,5 @@ def make_dataset(system="oscillator", n_train=256, n_test=64, T=60, dt_base=0.1,
         out[split]["obs"] = (out[split]["obs"] - mean) / std
     out["norm"] = {"mean": mean, "std": std}
     out["meta"] = {"system": system, "T": T, "dt_base": dt_base, "n_obs": n_obs,
-                   "noise_std": noise_std, "irregular": irregular}
+                   "noise_std": noise_std, "jitter": jitter}
     return out

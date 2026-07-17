@@ -29,16 +29,16 @@ def main():
     p.add_argument("--d", type=int, default=8)
     p.add_argument("--epochs", type=int, default=300)
     p.add_argument("--method", default="rk4", choices=["euler", "rk4"])
-    p.add_argument("--irregular", action="store_true")
+    p.add_argument("--jitter", type=float, default=0.0, help="sampling irregularity s: dt ~ U(1-s, 1+s)*dt_base")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--tag", default="")
     args = p.parse_args()
 
     torch.manual_seed(args.seed)
-    data = make_dataset(system=args.system, irregular=args.irregular, seed=args.seed)
+    data = make_dataset(system=args.system, jitter=args.jitter, seed=args.seed)
     model = LatentODEJEPA(n_obs=data["meta"]["n_obs"], d=args.d, method=args.method)
 
-    print(f"== Phase 0: {args.system} (irregular={args.irregular}, method={args.method}, d={args.d}) ==")
+    print(f"== Phase 0: {args.system} (jitter={args.jitter}, method={args.method}, d={args.d}) ==")
     history = train(model, data, epochs=args.epochs, seed=args.seed)
 
     r2 = linear_probe_state(model, data)
@@ -49,7 +49,7 @@ def main():
     obs = data["test"]["obs"]
     persist_rmse = ((obs[:, 10:] - obs[:, 9:10]) ** 2).mean().sqrt().item()
 
-    name = f"phase0_{args.system}{'_irr' if args.irregular else ''}{args.tag}"
+    name = f"phase0_{args.system}{f'_j{args.jitter}' if args.jitter else ''}{args.tag}"
     results_dir = Path(__file__).resolve().parents[1] / "results"
     results_dir.mkdir(exist_ok=True)
     phase_portrait(model, data, results_dir / f"{name}_portrait.png")

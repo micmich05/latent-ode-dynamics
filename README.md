@@ -68,13 +68,33 @@ acciones bajo sampling irregular.
   | oscilador amortiguado | 3.8 / 8 | 0.99 | **0.17** | 0.15 | 1.46 |
   | Lotka-Volterra | 3.8 / 8 | 0.99 | **0.25** | 0.22 | 1.36 |
 
-  Retratos de fase: espiral y ciclos cerrados recuperados (`results/*_portrait.png`).
-  H3 pasa cualitativamente en ambos sistemas.
+  Retratos de fase: espiral y ciclos cerrados recuperados — H3 pasa
+  cualitativamente en ambos sistemas.
 
-- **Fase 1 (en curso)** — la tesis: sampling irregular con $`\Delta t`$ variable.
-  Baselines: GRU discreta, JEPA discreta ($`\Delta t`$ como feature), Latent ODE con
-  decoder. Barrer la varianza de $`\Delta t`$ y medir el gap (H1). Euler vs RK4.
-- **Fase 2** — serie real irregular (PhysioNet) o forecasting estándar (ETT).
+  ![retratos de fase](assets/phase0_oscillator_portrait.png)
+
+- **Fase 1 (hecha)** — sweep de irregularidad $`s`$ ($`\Delta t \sim \Delta t_0 \cdot U(1-s, 1+s)`$),
+  oscilador, forecast RMSE (contexto 10, 50 pasos):
+
+  | $`s`$ | ours | JEPA discreta | GRU | Latent ODE + decoder |
+  |---|---|---|---|---|
+  | 0.0 | 0.169 | **0.110** | 0.365 | **0.088** |
+  | 0.3 | 0.208 | 0.200 | 0.369 | 0.089 |
+  | 0.6 | **0.180** | 0.332 | 0.428 | 0.090 |
+  | 0.9 | **0.160** | 0.453 | 0.509 | 0.091 |
+
+  ![gap H1](assets/phase1_oscillator_gap.png)
+
+  **H1 confirmada contra los modelos discretos**: los dos modelos continuos son
+  planos en $`s`$, mientras la JEPA discreta degrada 4× (0.11 → 0.45, cruce en
+  $`s \approx 0.35`$) y la GRU también empeora. La integración del campo — no la
+  loss latente — es lo que absorbe la irregularidad. **Matiz honesto**: el Latent
+  ODE con decoder sigue ganando en RMSE absoluto; pero el piso de reconstrucción
+  del probe (~0.15) indica que casi todo el error nuestro es del *readout*
+  post-hoc, no de la dinámica aprendida. La comparación decisiva es H2 (ruido).
+
+- **Fase 2** — H2 (robustez a ruido de observación vs Latent ODE con decoder),
+  después serie real irregular (PhysioNet) o forecasting estándar (ETT).
 
 ## Correr
 
