@@ -113,8 +113,48 @@ acciones bajo sampling irregular.
   readout. Caveat: una sola seed (la curva nuestra es no-monótona por varianza
   de entrenamiento); un writeup serio necesita 3+ seeds con barras de error.
 
-- **Fase 3** — H2 en espacio de estado + multi-seed; después serie real
-  irregular (PhysioNet) o forecasting estándar (ETT).
+- **Fase 3 (hecha)** — H2 en espacio de estado, 3 seeds. Ridge readout-free
+  sobre los latentes *rollouteados desde el contexto* → estado verdadero
+  (state RMSE, media ± std):
+
+  | ruido (% varianza) | 0% | 7% | 32% | 59% | 78% |
+  |---|---|---|---|---|---|
+  | ours | 0.204 ± .051 | 0.246 ± .049 | 0.308 ± .008 | 0.363 ± .022 | 0.439 ± .014 |
+  | Latent ODE + decoder | **0.134 ± .008** | **0.155 ± .007** | **0.212 ± .005** | **0.282 ± .012** | **0.371 ± .010** |
+
+  ![estado bajo ruido](assets/phase3_oscillator_state.png)
+
+  **H2 refutada.** Sin readout de por medio, el modelo con decoder aprende
+  dinámica más precisa en todos los niveles de ruido (bandas de 3 seeds sin
+  solapamiento), y ambos degradan con la misma pendiente absoluta (~+0.24 de
+  0% a 78%). La "robustez relativa" que sugería la Fase 2 en espacio de
+  observaciones era un artefacto: nuestro RMSE estaba dominado por el error
+  constante del probe, lo que aplanaba la curva. Además el decoder-free es
+  menos estable entre seeds. Conclusión: en este régimen (obs de dim 50, señal
+  densa), la reconstrucción no contamina el latente — lo ancla. El argumento
+  decoder-free queda condicionado a regímenes donde reconstruir es
+  genuinamente caro o distractor (pixels), que es el territorio de V-JEPA.
+
+## Conclusiones
+
+1. **H1 ✅** — la integración continua del campo latente absorbe el sampling
+   irregular; la ablación exacta (JEPA discreta, idéntica salvo la integración)
+   degrada 4×. Este es el resultado positivo del proyecto.
+2. **H2 ❌** — quitar el decoder no mejora la robustez a ruido; en espacio de
+   estado la reconstrucción produce dinámica uniformemente mejor. Resultado
+   negativo, medido limpio.
+3. **H3 ✅** (cualitativa) — el campo aprendido recupera la topología del
+   sistema (espiral, ciclos) solo desde observaciones liftadas.
+
+La combinación ganadora en este régimen sería: **dinámica continua (de H1) +
+decoder (de H2/H3)** — que es esencialmente el Latent ODE de Rubanova con
+encoder por frame. El nicho genuino del decoder-free continuo queda para
+observaciones de alta dimensión (video) o tareas que viven en el latente
+(control), donde reconstruir es el costo dominante.
+
+- **Posible Fase 4** — validar el crossover con pixels: repetir H2 con
+  observaciones de imagen (péndulo renderizado), donde la reconstrucción sí
+  compite por capacidad. O saltar a serie real irregular (PhysioNet).
 
 ## Correr
 
