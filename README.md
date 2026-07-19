@@ -140,21 +140,45 @@ acciones bajo sampling irregular.
 1. **H1 ✅** — la integración continua del campo latente absorbe el sampling
    irregular; la ablación exacta (JEPA discreta, idéntica salvo la integración)
    degrada 4×. Este es el resultado positivo del proyecto.
-2. **H2 ❌** — quitar el decoder no mejora la robustez a ruido; en espacio de
-   estado la reconstrucción produce dinámica uniformemente mejor. Resultado
-   negativo, medido limpio.
+2. **H2 ❌** — quitar el decoder no mejora la robustez a ruido en ninguno de
+   los dos regímenes probados: ni con observaciones densas de baja dimensión
+   (Fase 3) ni con pixels (Fase 4), donde el margen es aún mayor y se suma
+   fragilidad de entrenamiento. La reconstrucción produce dinámica
+   uniformemente mejor y entrena robusto. Resultado negativo, medido limpio.
 3. **H3 ✅** (cualitativa) — el campo aprendido recupera la topología del
    sistema (espiral, ciclos) solo desde observaciones liftadas.
 
-La combinación ganadora en este régimen sería: **dinámica continua (de H1) +
-decoder (de H2/H3)** — que es esencialmente el Latent ODE de Rubanova con
-encoder por frame. El nicho genuino del decoder-free continuo queda para
-observaciones de alta dimensión (video) o tareas que viven en el latente
-(control), donde reconstruir es el costo dominante.
+La combinación ganadora en todos los regímenes probados es: **dinámica continua
+(de H1) + decoder (de H2-H4)** — esencialmente el Latent ODE de Rubanova. La
+Fase 4 descarta también el nicho "pixels chicos": a 32×32 el decoder sigue
+ganando cómodo y entrena más robusto. El nicho que queda sin probar para el
+decoder-free continuo es la escala V-JEPA real (video de alta resolución, donde
+reconstruir es computacionalmente prohibitivo) y las tareas que nunca
+decodifican (control/planning en el latente).
 
-- **Posible Fase 4** — validar el crossover con pixels: repetir H2 con
-  observaciones de imagen (péndulo renderizado), donde la reconstrucción sí
-  compite por capacidad. O saltar a serie real irregular (PhysioNet).
+- **Fase 4 (hecha)** — H2 con pixels: péndulo renderizado 32×32 (pares de
+  frames con canal-diferencia, mismo input para ambos modelos), sweep de ruido
+  por pixel, misma métrica readout-free de la Fase 3, 2 seeds:
+
+  | ruido (% varianza) | 12% | 47% | 78% | 91% |
+  |---|---|---|---|---|
+  | ours (tuneado) | 0.63 ± .06 | 0.68 ± .02 | 0.72 ± .01 | 0.85 ± .37 |
+  | Latent ODE + decoder | **0.137 ± .001** | **0.140 ± .005** | **0.173 ± .01** | **0.201 ± .01** |
+
+  ![pixels bajo ruido](assets/phase4_pixels_state.png)
+
+  **H2 refutada también en pixels — y con más margen.** El decoder degrada
+  suavemente incluso cuando el 91% de la varianza del pixel es ruido (0.14 →
+  0.20), mientras el decoder-free queda 4× peor en todo el rango y una seed
+  directamente divergió a ruido máximo. El hallazgo extra es de *entrenabilidad*:
+  el baseline con decoder funcionó a la primera; el JEPA continuo necesitó
+  canal-diferencia (sin él no aprende la velocidad: la señal inter-frame de
+  ≤1.5 px se pierde), EMA target en vez de VICReg fuerte (que fuerza un mal
+  equilibrio: estirar una variedad 2D a $`d`$ dims decorrelacionadas produce
+  features no integrables), projector con LayerNorm y horizonte de rollout
+  largo — y aún así quedó atrás e inestable entre seeds. La fragilidad de
+  optimización es un costo real y poco reportado del enfoque decoder-free a
+  esta escala.
 
 ## Correr
 
