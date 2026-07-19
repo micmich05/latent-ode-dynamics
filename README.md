@@ -135,6 +135,46 @@ acciones bajo sampling irregular.
   decoder-free queda condicionado a regímenes donde reconstruir es
   genuinamente caro o distractor (pixels), que es el territorio de V-JEPA.
 
+- **Fase 5 / E1 (hecha)** — ¿el campo aprendido es un objeto dinámico genuino?
+  Los autovalores de la linearización en un punto fijo son invariantes bajo
+  conjugación suave, así que el Jacobiano de $`g_\phi`$ en su punto fijo debe
+  reproducir el espectro del sistema verdadero. Newton sobre $`g_\phi(z)=0`$ +
+  autograd, 3 seeds:
+
+  | sistema | teoría | ours | lode |
+  |---|---|---|---|
+  | oscilador | $`-0.075 \pm 2.00i`$ | $`+0.02 \pm 2.04i`$ | $`-0.01 \pm 2.23i`$ |
+  | Lotka-Volterra | $`0 \pm 2.12i`$ | $`-0.005 \pm 2.01i`$ | $`+0.04 \pm 1.82i`$ |
+
+  ![autovalores](assets/phase5_eigenvalues.png)
+
+  Dos hallazgos: (1) **la frecuencia se recupera desde el latente con 2–5% de
+  error** (ours), y la parte real sale ≈0 para el sistema conservativo — la
+  versión cuantitativa de H3. El amortiguamiento ($`-0.075`$, 27× más chico que
+  $`\omega`$) es demasiado fino: el signo varía entre seeds. (2) **El campo del
+  modelo decoder-free está globalmente mejor comportado**: su punto fijo cae
+  sobre la variedad de datos (0.3–1.4 escalas latentes, Newton converge a
+  $`10^{-8}`$ siempre), mientras que el del baseline con decoder queda a 1.4–7
+  escalas y Newton directamente falla en 2/6 corridas — su campo solo está
+  entrenado a lo largo de trayectorias rollouteadas desde el contexto y es
+  basura fuera de ellas. Primera victoria estructural del enfoque JEPA: pierde
+  en precisión sobre la trayectoria (Fases 2–4) pero aprende mejor geometría
+  global del campo.
+
+## Aplicación objetivo: clasificación por consistencia dinámica
+
+La dirección aplicada del proyecto: usar el campo aprendido para detectar
+anomalías (una serie que se desvía de la dinámica aprendida) y clasificar por
+régimen dinámico (un campo por clase, asignar por menor residual). Trabajo
+cercano: [Latent SDEs para AD irregular](https://arxiv.org/abs/2606.18898)
+(estocástico, score por verosimilitud, costo alto); nicho nuestro: campo
+determinístico barato, score por residual (localiza el inicio de la anomalía),
+sampling irregular (H1) y multi-clase. La refutación de H2 es una decisión de
+diseño acá: entrenar **con** decoder ancla el encoder (una observación anómala
+no puede esconderse en la variedad normal), y el hallazgo (2) de E1 sugiere
+scorear con un campo entrenado estilo JEPA, mejor comportado fuera de la
+variedad — justo donde vive lo anómalo.
+
 ## Conclusiones
 
 1. **H1 ✅** — la integración continua del campo latente absorbe el sampling
