@@ -161,6 +161,28 @@ acciones bajo sampling irregular.
   en precisión sobre la trayectoria (Fases 2–4) pero aprende mejor geometría
   global del campo.
 
+- **Fase 5 / E2-E3 (hechas)** — E2, interpolación en tiempos no vistos: el test
+  vive en una grilla fina ($`\Delta t = 0.05`$), el modelo observa 1 de cada 2
+  muestras (su régimen de training) y predice el estado en los *midpoints*
+  held-out integrando medio intervalo (state RMSE, 3 seeds):
+
+  | integrar $`g_\phi`$ (solo pasado) | hold última obs | midpoint latente (usa futuro) |
+  |---|---|---|
+  | **0.122** | 0.165 | 0.115 |
+
+  Consultado en un instante que no existe en ningún dato de entrenamiento, el
+  campo (que solo mira el pasado) le gana 26% al no-dinámico y queda a 6% del
+  interpolador que hace trampa usando la observación futura. Un predictor
+  discreto ni siquiera puede formular esta consulta. ✅
+
+  E3, ablación de integrador (Euler vs RK4 × substeps, forecast en
+  $`s=0.9`$): euler-1 es el peor (0.222) e inestable (una seed explota a 0.29),
+  euler-2 y rk4 quedan en 0.18–0.20 sin orden claro entre ellos. Evidencia
+  parcial: la integración más gruesa duele, pero más allá de 2 substeps la
+  varianza entre seeds domina — y como el modelo entrena *a través* de su
+  integrador, se co-adapta al solver y la ablación queda confundida. La
+  pregunta "¿campo genuino o bloque residual?" la responde mejor E2. ⚠️
+
 ## Aplicación objetivo: clasificación por consistencia dinámica
 
 La dirección aplicada del proyecto: usar el campo aprendido para detectar
