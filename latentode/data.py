@@ -22,6 +22,11 @@ def lotka_volterra(s, alpha=1.5, beta=1.0, delta=1.0, gamma=3.0):
     return np.stack([alpha * x - beta * x * y, delta * x * y - gamma * y], axis=-1)
 
 
+def van_der_pol(s, mu=1.5):
+    x, v = s[..., 0], s[..., 1]
+    return np.stack([v, mu * (1 - x**2) * v - x], axis=-1)
+
+
 SYSTEMS = {
     "oscillator": {
         "f": damped_oscillator,
@@ -30,6 +35,10 @@ SYSTEMS = {
     "lotka_volterra": {
         "f": lotka_volterra,
         "init": lambda rng, n: rng.uniform([1.0, 0.5], [5.0, 2.5], size=(n, 2)),
+    },
+    "van_der_pol": {
+        "f": van_der_pol,
+        "init": lambda rng, n: rng.uniform(-2.0, 2.0, size=(n, 2)),
     },
 }
 

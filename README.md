@@ -1,9 +1,9 @@
 # latent-ode-dynamics
 
-**Learning the derivative of a system in latent space — and using it to
+**Learning the derivative of a system in latent space, and using it to
 classify time series by their dynamics.**
 
-An independent research project. An encoder $`f_\theta`$ maps observations
+An encoder $`f_\theta`$ maps observations
 $`x_t \in \mathbb{R}^n`$ to latents $`z_t \in \mathbb{R}^d`$ ($`d \ll n`$),
 and a learned vector field $`g_\phi`$ defines continuous-time latent dynamics
 
@@ -156,6 +156,19 @@ rollout supervision). The decoder model trained robustly out of the box.
 at this scale.**
 
 ### E3 — Is the learned field a genuine dynamical object? (phase 5)
+
+**Phase portraits, true vs learned.** The qualitative evidence first: for
+each system, the true phase plane (vector field + trajectories) next to the
+learned latent field, projected onto the top-2 PCA plane of the latents —
+the quiver is $`g_\phi`$ evaluated on a grid of that plane. The model has
+never seen the state; latent coordinates are arbitrary, so the correct
+expectation is a *diffeomorphic image* of the true portrait — same topology,
+deformed geometry. That is what appears: the oscillator's spiral sink,
+Lotka-Volterra's nested closed orbits, and Van der Pol's **limit cycle** —
+trajectories from inside and outside converging to the same closed curve, a
+topology no linear system can produce:
+
+![True vs learned phase portraits](assets/portraits_true_vs_learned.png)
 
 **Eigenvalue recovery.** Eigenvalues of a system's linearization at a fixed
 point are invariant under smooth changes of coordinates — so if the latent

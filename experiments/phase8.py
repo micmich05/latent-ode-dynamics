@@ -36,19 +36,11 @@ JITTER = 0.5
 NOISE = 0.02
 N_OBS = 50
 
-# Register the class regimes and the unseen one.
+# Register the class-regime variants (van_der_pol ships in data.SYSTEMS).
 SYSTEMS["osc_fast"] = {"f": lambda s: damped_oscillator(s, omega=2.8),
                        "init": SYSTEMS["oscillator"]["init"]}
 SYSTEMS["osc_damped"] = {"f": lambda s: damped_oscillator(s, gamma=0.7),
                          "init": SYSTEMS["oscillator"]["init"]}
-
-
-def van_der_pol(s, mu=1.5):
-    x, v = s[..., 0], s[..., 1]
-    return np.stack([v, mu * (1 - x**2) * v - x], axis=-1)
-
-
-SYSTEMS["van_der_pol"] = {"f": van_der_pol, "init": SYSTEMS["oscillator"]["init"]}
 
 CLASSES = ["oscillator", "osc_fast", "osc_damped", "lotka_volterra"]
 UNSEEN = "van_der_pol"
