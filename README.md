@@ -231,6 +231,27 @@ acciones bajo sampling irregular.
   y la geometría del campo en Lotka-Volterra es inestable (2/3 seeds con punto
   fijo off-manifold) — la herencia de E1 es parcial.
 
+- **Fase 8 (hecha)** — clasificación multi-clase por consistencia dinámica +
+  open-set. Cuatro regímenes como clases (oscilador estándar / rápido
+  $`\omega=2.8`$ / muy amortiguado $`\gamma=0.7`$ / Lotka-Volterra), un
+  `UnifiedLatentODE` por clase entrenado solo con series de su régimen;
+  asignación por menor residual de rollout z-scoreado. Baseline: GRU
+  supervisada con labels. Umbrales de rechazo calibrados a 95% de aceptación
+  in-distribution en ambos. 3 seeds:
+
+  | | accuracy (4 clases) | rechazo de régimen NO visto (Van der Pol) |
+  |---|---|---|
+  | clasificador por campos (gen.) | **100.0%** (768/768) | **100%** |
+  | GRU supervisada (disc.) | 99.6% | 29% |
+
+  Matriz de confusión perfecta en las 3 seeds. El resultado central es la
+  columna derecha: ante un régimen dinámico nunca visto, el clasificador
+  generativo dice "esto no encaja en ninguna dinámica conocida" el 100% de
+  las veces, mientras la GRU — estructuralmente obligada a elegir — clasifica
+  con confianza el 71% de las series de Van der Pol en alguna clase falsa.
+  Esa es la capacidad que justifica el enfoque. Limitación a declarar: el
+  costo escala linealmente con el número de clases (un campo por régimen).
+
 ## Aplicación objetivo: clasificación por consistencia dinámica
 
 La dirección aplicada del proyecto: usar el campo aprendido para detectar
