@@ -170,12 +170,53 @@ topology no linear system can produce:
 
 ![True vs learned phase portraits](assets/portraits_true_vs_learned.png)
 
-**Eigenvalue recovery.** Eigenvalues of a system's linearization at a fixed
-point are invariant under smooth changes of coordinates — so if the latent
-field truly learned the dynamics, the Jacobian of $`g_\phi`$ at its own fixed
-point must reproduce the true system's spectrum, even though the latent
-coordinates are arbitrary. We find the fixed point by damped Newton on
-$`g_\phi(z)=0`$ and take the Jacobian by autograd:
+**Eigenvalue recovery — the idea.** The latent coordinates are arbitrary: the
+encoder could have learned any rotated, stretched, warped version of the true
+state space, so comparing the learned field to the true one coordinate by
+coordinate is meaningless. What we need is a property of the dynamics that
+**survives any smooth change of coordinates**. Linearization spectra at fixed
+points are exactly that. Concretely:
+
+- A *fixed point* is a state $`z^*`$ where the dynamics stops:
+  $`g(z^*) = 0`$ (the oscillator at rest; predator and prey in equilibrium).
+- Near a fixed point, the nonlinear system behaves like its *linearization*
+  $`\dot{\delta z} = J\,\delta z`$, where $`J = \partial g / \partial z`$ is
+  the Jacobian at $`z^*`$. Solutions of that linear system are combinations
+  of modes $`e^{\lambda t}`$, one per eigenvalue $`\lambda = a \pm bi`$ of
+  $`J`$ — and each part of $`\lambda`$ has physical meaning:
+  **$`\mathrm{Im}(\lambda) = b`$ is the angular frequency** of rotation
+  around the fixed point, and **$`\mathrm{Re}(\lambda) = a`$ is the
+  contraction rate** (negative = damped spiral in, zero = closed orbits,
+  positive = unstable).
+- Now the key fact: if the latent dynamics is the true dynamics seen through
+  a smooth invertible map $`h`$ (encoder ∘ lift), the chain rule gives
+  $`J_{\text{latent}} = Dh \; J_{\text{true}} \; Dh^{-1}`$ on the embedded
+  state manifold — a *similarity transform*, and **similar matrices have
+  identical eigenvalues**. The map $`Dh`$ (which we don't know and never
+  compute) cancels out. So the eigenvalues of the learned field's Jacobian
+  are a coordinate-free fingerprint: if the dynamics law was truly learned,
+  the true system's $`\lambda`$ must reappear in the latent, exactly.
+
+For our systems the theoretical targets follow from their equations. The
+damped oscillator ($`\dot x = v`$, $`\dot v = -\omega^2 x - \gamma v`$,
+$`\omega = 2`$, $`\gamma = 0.15`$) has
+$`\lambda = -\tfrac{\gamma}{2} \pm i\sqrt{\omega^2 - \gamma^2/4} = -0.075 \pm 1.999i`$
+— a slow damped spiral rotating at essentially $`\omega`$. Lotka-Volterra at
+its coexistence equilibrium has purely imaginary
+$`\lambda = \pm i\sqrt{\alpha\gamma} = \pm 2.121i`$ — no damping at all,
+which is why its orbits close.
+
+**Procedure.** The latent field is $`d=8`$-dimensional, so: (1) find its
+fixed point by damped Newton on $`g_\phi(z) = 0`$, starting from the mean of
+the encoded data; (2) get $`J \in \mathbb{R}^{8\times 8}`$ by autograd;
+(3) eigendecompose. Six of the eight eigenvalues describe the directions
+*transverse* to the learned 2D manifold (they should be strongly contracting
+— the manifold attracts); the complex-conjugate pair with the largest
+imaginary part is the oscillatory plane tangent to the dynamics, and that is
+what we compare against theory. Two sanity checks guard the procedure: the
+Newton residual (did we actually find a zero of the field?) and the distance
+from $`z^*`$ to the nearest encoded data point in units of the latent scale
+(is the fixed point where the data lives, or a spurious zero far away?).
 
 ![Eigenvalue recovery](assets/phase5_eigenvalues.png)
 
@@ -184,16 +225,21 @@ $`g_\phi(z)=0`$ and take the Jacobian by autograd:
 | oscillator | $`-0.075 \pm 2.00i`$ | $`+0.02 \pm 2.04i`$ | $`-0.01 \pm 2.23i`$ |
 | Lotka-Volterra | $`0 \pm 2.12i`$ | $`-0.005 \pm 2.01i`$ | $`+0.04 \pm 1.82i`$ |
 
-**Reading.** The frequency is recovered within 2–5% and the conservative
-system's real part comes out ≈0 — physical constants extracted from a latent
-space trained only on lifted noisy observations. The damping
-($`-0.075`$, 27× smaller than $`\omega`$) is below seed resolution. There is
-also a structural asymmetry: our field's fixed point lies **on the data
-manifold** (0.3–1.4 latent scales, Newton converges to $`10^{-8}`$ every
-time), while the decoder-only baseline's field — trained only along rollout
-trajectories — has spurious far-off fixed points and Newton fails outright in
-2/6 runs. The latent prediction loss, applied at every frame across the whole
-manifold, buys **global field geometry** that trajectory-only training lacks.
+**Reading.** The frequency ($`\mathrm{Im}\,\lambda`$) is recovered within
+2–5%, and the conservative system's contraction rate comes out ≈0 as it must
+— physical constants extracted from a latent space trained only on lifted,
+noisy observations, with no access to the state, its dimensionality, or the
+equations. The damping ($`-0.075`$, 27× smaller than the frequency) sits
+below seed resolution for the decoder-free model; notably, the *unified*
+model of phase 7 is the only variant that recovers its sign in 3/3 seeds
+($`-0.049`$ mean). The sanity checks also expose a structural asymmetry: our
+field's fixed point lies **on the data manifold** (0.3–1.4 latent scales
+away, Newton residual $`\sim 10^{-8}`$ every run), while the decoder-only
+baseline's field — trained only along rollout trajectories — places fixed
+points 1.4–7 scales off-manifold and Newton fails outright in 2/6 runs. The
+per-frame latent prediction loss, applied across the whole manifold, buys
+**global field geometry** that trajectory-only training lacks — the property
+that matters when anomalous data pushes latents off the normal manifold.
 
 **Querying times that don't exist.** On a test grid of double resolution, the
 model observes every 2nd sample and must predict the state at the held-out
