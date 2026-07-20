@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "latent-ode-dynamics: learning latent dynamics for classifying irregularly-sampled time series"
+authors:
+  - family-names: "Michanie"
+    given-names: "Micol"
+year: 2026
+url: "https://github.com/micmich05/latent-ode-dynamics"
+license: MIT
