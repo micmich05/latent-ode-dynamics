@@ -7,7 +7,10 @@ from .losses import effective_rank, jepa_losses
 
 def train(model, data, epochs=300, batch_size=128, lr=1e-3, weight_decay=1e-5,
           lambda_pred=1.0, lambda_roll=1.0, lambda_var=1.0, lambda_cov=0.1,
-          rollout_horizon=8, log_every=25, seed=0, verbose=True):
+          rollout_horizon=8, log_every=25, seed=0, verbose=True,
+          loss_fn=None, extra_weights=None):
+    loss_fn = loss_fn or jepa_losses
+    extra_weights = extra_weights or {}
     obs, times = data["train"]["obs"], data["train"]["times"]
     n_traj = obs.shape[0]
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -21,9 +24,10 @@ def train(model, data, epochs=300, batch_size=128, lr=1e-3, weight_decay=1e-5,
         n_batches = 0
         for i in range(0, n_traj, batch_size):
             idx = perm[i:i + batch_size]
-            losses = jepa_losses(model, obs[idx], times[idx], rollout_horizon)
+            losses = loss_fn(model, obs[idx], times[idx], rollout_horizon)
             total = (lambda_pred * losses["pred"] + lambda_roll * losses["roll"]
-                     + lambda_var * losses["var"] + lambda_cov * losses["cov"])
+                     + lambda_var * losses["var"] + lambda_cov * losses["cov"]
+                     + sum(w * losses[k] for k, w in extra_weights.items()))
             opt.zero_grad()
             total.backward()
             opt.step()

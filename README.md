@@ -209,6 +209,28 @@ acciones bajo sampling irregular.
   precisión de dinámica. (4) Trade-off señal-latencia: one-step detecta antes
   (2 vs 4 pasos) pero con menos poder; rollout al revés.
 
+- **Fase 7 (hecha)** — el modelo unificado (`latentode/unified.py`): encoder
+  por frame + campo + decoder entrenados juntos, loss = predicción latente
+  (one-step + rollout) + **predicción decodificada contra observaciones
+  futuras** (el gradiente del decoder entrena a $`g_\phi`$ vía el integrador) +
+  ancla de reconstrucción. Validado contra sus dos "padres" en los tres
+  frentes ya medidos (3 seeds):
+
+  | frente | unified | JEPA solo | lode |
+  |---|---|---|---|
+  | state RMSE (ruido 0→78%) | 0.17→0.43 | 0.20→0.44 | **0.13→0.37** |
+  | AUROC anomalías (param/imp/sensor) | **1.00 / 1.00 / 0.99** | 0.88 / 1.00 / 0.78 | 1.00 / 1.00 / 1.00 |
+  | autovalores oscilador | $`-0.049 \pm 1.89i`$ ✓ | $`+0.02 \pm 2.04i`$ | Newton falla |
+
+  Resultado: mejora al JEPA puro en precisión en todos los niveles de ruido
+  (~15%), **empata con el lode en la tarea que importa** (detección: ≥0.99 en
+  los tres tipos, sin punto ciego — su propio decoder provee el stream
+  observacional), y es el primero que recupera el **signo del amortiguamiento
+  consistentemente** (parte real negativa en 3/3 seeds; el JEPA lo tenía
+  aleatorio). Pendiente honesto: en precisión pura queda ~20% detrás del lode,
+  y la geometría del campo en Lotka-Volterra es inestable (2/3 seeds con punto
+  fijo off-manifold) — la herencia de E1 es parcial.
+
 ## Aplicación objetivo: clasificación por consistencia dinámica
 
 La dirección aplicada del proyecto: usar el campo aprendido para detectar

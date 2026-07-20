@@ -65,4 +65,9 @@ def jepa_losses(model, obs, times, rollout_horizon=8, detach_targets=True):
         "var": variance_loss(z),
         "cov": covariance_loss(z),
         "z": z,
+        # integrated latents, exposed so a decoder head can supervise them in
+        # observation space without recomputing (underscore = not a loss term)
+        "_pred_next": pred_next,
+        "_z_roll": z_roll,
+        "_roll_start": start,
     }
