@@ -51,17 +51,18 @@ def residual_onestep(model, obs, times):
 
 
 RESIDUALS = {"rollout": residual_rollout, "onestep": residual_onestep}
-residual_series = residual_onestep  # default; overridden by --score
 
 
 class ClassField:
-    def __init__(self, n_obs, train_split, calib_split, seed, epochs, d):
+    def __init__(self, n_obs, train_split, calib_split, seed, epochs, d,
+                 residual_fn=residual_onestep):
         torch.manual_seed(seed)
+        self.residual_fn = residual_fn
         self.model = UnifiedLatentODE(n_obs=n_obs, d=d)
         data = {"train": train_split}
         train_unified(self.model, data, epochs=epochs, batch_size=64,
                       seed=seed, verbose=False)
-        r = residual_series(self.model, calib_split["obs"], calib_split["times"])
+        r = residual_fn(self.model, calib_split["obs"], calib_split["times"])
         self.mu, self.sd = r.mean(0), r.std(0).clamp_min(1e-6)
         self.tau = self.score(calib_split["obs"], calib_split["times"]).quantile(0.95)
 
@@ -70,7 +71,7 @@ class ClassField:
         residuals look TYPICAL for that class — suspiciously low is also
         evidence against (an easy/static series under a hard class's field
         z-scores far below that class's calibration and must not win)."""
-        r = residual_series(self.model, obs, times)
+        r = self.residual_fn(self.model, obs, times)
         return ((r - self.mu) / self.sd).abs().mean(dim=1)
 
 
@@ -87,7 +88,7 @@ class GRUClassifier(nn.Module):
         return self.head(h[:, -1])
 
 
-def run_seed(seed, epochs, d):
+def run_seed(seed, epochs, d, residual_fn=residual_onestep):
     data = make_splits(seed=seed)
     keys, n_obs = data["keys"], data["n_obs"]
     known = [c for c in range(len(keys)) if keys[c] not in UNSEEN_CHARS]
@@ -97,7 +98,7 @@ def run_seed(seed, epochs, d):
     fields = {}
     for c in known:
         fields[c] = ClassField(n_obs, data["train"][c], data["calib"][c],
-                               seed, epochs, d)
+                               seed, epochs, d, residual_fn=residual_fn)
     print(f"  seed={seed}: {len(known)} class fields trained ({time.time()-t0:.0f}s)",
           flush=True)
 
@@ -154,12 +155,9 @@ def main():
     p.add_argument("--score", default="onestep", choices=list(RESIDUALS))
     args = p.parse_args()
 
-    global residual_series
-    residual_series = RESIDUALS[args.score]
-
     results = {"args": vars(args), "unseen": UNSEEN_CHARS, "runs": []}
     for seed in args.seeds:
-        r = run_seed(seed, args.epochs, args.d)
+        r = run_seed(seed, args.epochs, args.d, residual_fn=RESIDUALS[args.score])
         results["runs"].append({"seed": seed, **r})
         print(f"  seed={seed} acc gen {r['acc_gen']:.3f} | disc {r['acc_disc']:.3f} | "
               f"openset reject gen {r['openset_reject_gen']:.0%} vs disc "

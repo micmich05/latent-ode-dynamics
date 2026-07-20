@@ -57,7 +57,6 @@ def gen_anomalous(n, seed, anomaly=None):
             s[kick, 1] += 2.0
         h = dts[:, i] / FINE_SUBSTEPS
         for _ in range(FINE_SUBSTEPS):
-            x, v = s[..., 0], s[..., 1]
             def f(st):
                 return np.stack([st[..., 1],
                                  -(omega**2) * st[..., 0] - 0.15 * st[..., 1]], axis=-1)
