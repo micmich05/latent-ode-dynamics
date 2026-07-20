@@ -395,6 +395,7 @@ is the project's open problem.
 | `assets/` | key figures |
 | `docs/LAB_NOTEBOOK.md` | phase-by-phase chronological log with all tables and caveats (Spanish) |
 | `docs/NARRATIVA.md` | the findings organized into the project's narrative (Spanish) |
+| `docs/WRITEUP.md` | **the article**: "Where the Loss Lives — an Anatomy of Continuous Latent Dynamics Models" (draft) |
 
 ## Reproduce
 
