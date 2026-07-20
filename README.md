@@ -333,11 +333,20 @@ fails here because entire series belong to different classes — one-step
 scoring nearly doubles accuracy; and signed z-scores let high-residual
 classes attract easy series (a sitting series scores *suspiciously well*
 under the walking field), motivating a typicality score $`|z|`$ with its own
-trade-offs. (3) **Root cause of the remaining gap, diagnosed**: each class
-has its own encoder, so out-of-class series are off-distribution inputs and
-their residuals are noise rather than evidence. The identified fix — a
-shared encoder/decoder with per-class fields only — is the project's next
-step, and would also cut the per-class cost from a full model to one field.
+trade-offs. (3) **The obvious architectural fix was tested — and refuted**
+(phase 11): the leading hypothesis for the remaining gap was that per-class
+encoders receive off-distribution inputs from other classes, making their
+residuals noise rather than evidence. A shared encoder/decoder with
+per-class fields (one common latent space, residuals comparable by
+construction) did *not* close the gap — it slightly worsened both datasets
+(HAR 40% vs 43–57%; characters 32% vs 39%). Two readings survive: sharing
+removes the per-class feature specialization that separate encoders
+provided, and — more fundamentally — the residual probes *local* dynamics,
+and real-world classes overlap heavily in their local dynamics (walking and
+climbing stairs share the gait oscillation; sitting and standing share
+near-zero motion). The scope condition sharpens: what must differ is the
+dynamics law *at the temporal scale the residual probes*. Closing this gap
+is the project's open problem.
 
 ---
 
@@ -402,10 +411,10 @@ classification by dynamics consistency.
 Synthetic systems are low-dimensional; real-data classification still trails
 a supervised GRU in closed-set accuracy (the open-set advantage is the
 method's edge); the unified model trails the pure decoder model ~20% in raw
-state accuracy. Identified next step: shared encoder/decoder with per-class
-fields only (fixes off-distribution encoding, cuts per-class cost). Also
-open: damping recovery below seed resolution, a Neural CDE baseline,
-PhysioNet, and a stochastic (SDE) field.
+state accuracy; the shared-encoder fix for the real-data gap was tested and
+refuted (phase 11), leaving multi-scale dynamics scoring as the open
+problem. Also open: damping recovery below seed resolution, a Neural CDE
+baseline, PhysioNet, and a stochastic (SDE) field.
 
 ## License & citation
 
