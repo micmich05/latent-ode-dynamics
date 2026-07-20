@@ -183,6 +183,32 @@ acciones bajo sampling irregular.
   integrador, se co-adapta al solver y la ablación queda confundida. La
   pregunta "¿campo genuino o bloque residual?" la responde mejor E2. ⚠️
 
+- **Fase 6 (hecha)** — detector por consistencia dinámica. Entrenado solo con
+  series normales (jitter 0.5), tres anomalías inyectadas a mitad de serie:
+  cambio de régimen ($`\omega: 2 \to 2.5`$), impulso en velocidad, falla de
+  sensor (10/50 dims congeladas). Score = residual de predicción z-scoreado
+  por paso contra calibración normal; AUROC serie-a-serie, 3 seeds:
+
+  | score | param | impulse | sensor | delay mediano (param) |
+  |---|---|---|---|---|
+  | ours, one-step latente | 0.88 | 1.00 | 0.78 ⚠️ | 2 pasos |
+  | ours, rollout latente | 0.93 | 1.00 | 0.95 | — |
+  | ours + probe obs (híbrido) | 0.88 | 1.00 | **0.98** | 2 pasos |
+  | GRU, one-step obs | 0.88 | 1.00 | 0.99 | 5 pasos |
+  | Latent ODE + decoder, rollout obs | **1.00** | 1.00 | **1.00** | 4 pasos |
+
+  Hallazgos: (1) la detección por dinámica **funciona** — el impulso se detecta
+  perfecto e instantáneo en todos los modelos. (2) El **punto ciego JEPA es
+  real y medible**: el score latente puro no ve la falla de sensor (0.78 ≈
+  azar+, porque el encoder aprendió a ignorar dims que no afectan la dinámica);
+  agregar el stream de observaciones vía probe decoder lo cierra (0.98) sin
+  costo en los otros tipos. (3) El mejor detector es el mejor modelo dinámico:
+  el Latent ODE con decoder (Fases 2–4) domina con score de rollout, que
+  acumula evidencia contra el forecast — la mitad de su ventaja en `param` es
+  el modo de scoring (ours sube 0.88→0.93 al usarlo), la otra mitad es
+  precisión de dinámica. (4) Trade-off señal-latencia: one-step detecta antes
+  (2 vs 4 pasos) pero con menos poder; rollout al revés.
+
 ## Aplicación objetivo: clasificación por consistencia dinámica
 
 La dirección aplicada del proyecto: usar el campo aprendido para detectar
