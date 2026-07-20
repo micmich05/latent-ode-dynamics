@@ -241,6 +241,41 @@ per-frame latent prediction loss, applied across the whole manifold, buys
 **global field geometry** that trajectory-only training lacks — the property
 that matters when anomalous data pushes latents off the normal manifold.
 
+**Robustness, and the edge of the advantage (phase 12).** The dissociation
+above is the one place the latent-prediction loss *beats* reconstruction, so
+we stress-tested it: 3 systems × 3 models × 5 seeds, adding Van der Pol —
+whose fixed point is **unstable** (theory $`+0.75 \pm 0.66i`$) and sits
+inside the limit cycle, where trajectories never linger:
+
+![Spectrum recovery, 5 seeds](assets/phase12_spectra.png)
+
+| | Newton finds a genuine zero | freq. error (osc / L-V) | fixed point on-manifold |
+|---|---|---|---|
+| latent loss (JEPA) | **100%** of 15 runs | **3% / 3%** | **0.5–0.6** scales |
+| reconstruction only | 40–60% | 11% / 8% | 1.0–2.3 scales |
+| unified | 80–100% | 4% / 18% | 0.8–2.6 scales |
+
+Three results. (1) The advantage is robust where it was claimed: with 5
+seeds, the latent-loss field's fixed-point structure is categorically more
+reliable. (2) **Van der Pol marks the edge**: *no* model recovers the
+unstable spectrum — the latent-loss model even gets the stability sign wrong
+(its field thinks the repelling origin attracts). The reason is fundamental:
+every loss supervises the field where data *lives*, and the repelling
+interior of a limit cycle is precisely where data never stays. Supervision
+cannot conjure structure in regions the data does not visit. (3) A
+null result worth reporting: an off-manifold *flow* test (perturb latents by
+up to 4 latent scales, integrate 5 time units, measure the distance back to
+the manifold) shows **no difference** between models — all fields are
+similarly bounded at short horizons. The advantage is *structural* (where
+the zeros are, whether the linearization is meaningful), not dynamical
+explosiveness.
+
+Together these refine the finding into its final form: **where the loss
+lives determines where the field is trustworthy — per-frame latent
+prediction buys reliable structure exactly on and near the data manifold;
+no loss buys structure where data never goes; and reconstruction-only
+training leaves even data-adjacent structure unreliable.**
+
 **Querying times that don't exist.** On a test grid of double resolution, the
 model observes every 2nd sample and must predict the state at the held-out
 midpoints by integrating half an interval — a time offset reachable only

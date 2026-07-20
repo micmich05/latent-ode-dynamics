@@ -75,8 +75,13 @@ El reality check produjo los hallazgos más finos:
    pierde en precisión, ruido y entrenabilidad en dos regímenes (F2–F4).
 3. El campo aprendido contiene la física real: constantes recuperables por
    autovalores, consultable en tiempos arbitrarios (F5).
-4. Disociación on/off-manifold: la loss latente da geometría global sana donde
-   el solo-decoder es basura; el decoder da precisión sobre la trayectoria (F5-E1).
+4. Disociación on/off-manifold, en su forma final (F5-E1 + F12, 5 seeds):
+   **dónde vive la loss determina dónde es confiable el campo** — la
+   predicción latente por frame compra estructura confiable sobre la variedad
+   de datos (Newton 100% vs 40–60%, frecuencias al 3% vs 11%); ninguna loss
+   compra estructura donde los datos no van (el punto fijo inestable de Van
+   der Pol se le escapa a todos); la reconstrucción sola deja poco confiable
+   incluso la estructura adyacente a los datos.
 5. Punto ciego JEPA en detección de anomalías + fix híbrido (F6).
 6. Clasificación open-set por dinámica: lo que un discriminativo no puede
    hacer por construcción (F8: 100% vs 29%).
@@ -91,19 +96,24 @@ El reality check produjo los hallazgos más finos:
 "Anatomía de la dinámica latente continua": Actos 1–2 completos (descubrimientos
 1–4, 8, 10). Todo con seeds y figuras. Falta solo: related work y redacción.
 
-**B. Largo (TMLR / venue aplicada) — falta una pieza.**
+**B. Largo (TMLR / venue aplicada).**
 "Clasificación de series temporales por consistencia dinámica": Acto 3 con el
-Acto 1–2 comprimido como estudio de diseño. Bloqueantes: (i) la arquitectura de
-encoder compartido, (ii) HAR competitivo con ella (o resultado negativo bien
-medido), (iii) baseline Neural CDE, (iv) 3 seeds en F9–F10.
+Acto 1–2 comprimido como estudio de diseño. La arquitectura de encoder
+compartido ya se probó y refutó (F11) — el resultado negativo bien medido está;
+bloqueantes restantes: (i) baseline Neural CDE, (ii) 3 seeds en F9–F11, y
+(iii) decidir si el gap de closed-set se ataca (scoring multi-escala) o se
+publica como problema abierto documentado.
 
 ## Con qué seguimos (en orden)
 
-1. **Encoder/decoder compartidos + campo por clase** — el fix identificado en
-   F10. Entrenamiento conjunto: batches mezclados, cada clase actualiza solo su
-   campo, encoder/decoder ven todo. Resuelve off-distribution y baja el costo
-   por clase de un modelo a un campo. Re-correr HAR y CharacterTrajectories.
-2. Si HAR mejora sustancialmente: 3 seeds + baseline **Neural CDE** → writeup B.
-3. En paralelo (no depende de 1–2): **escribir el writeup A** con lo cerrado.
-4. Opcionales: PhysioNet, recuperación de amortiguamiento con más training,
-   versión estocástica (SDE) del campo.
+1. ~~Encoder compartido + campo por clase~~ — **probado y refutado** (F11):
+   no cerró el gap real (HAR 40% vs 43–57%; caracteres 32% vs 39%). El gap no
+   era (solo) encoding off-distribution. La condición de alcance se afina:
+   la ley dinámica debe diferir *a la escala temporal que sondea el residual*
+   — caminar y subir escaleras comparten la oscilación de marcha local.
+   Problema abierto: scoring multi-escala.
+2. **Escribir el writeup A** — todo cerrado, incluida la demostración robusta
+   de F12 (5 seeds, Van der Pol como borde del insight, flow test nulo).
+3. Para el writeup B: Neural CDE + seeds + decisión sobre el gap (atacar con
+   scoring multi-escala o documentar como problema abierto).
+4. Opcionales: PhysioNet, amortiguamiento con más training, campo SDE.
