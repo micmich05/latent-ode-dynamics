@@ -18,60 +18,28 @@ detection and open-set classification of irregularly-sampled time series —
 including two real datasets. Every design decision is backed by its own
 ablation; negative results are reported alongside positive ones.
 
-![Forecast error vs sampling irregularity](assets/phase1_oscillator_gap.png)
+## Findings at a glance
 
-## Key findings
+**Capability** — the learned field is a genuine dynamical object: it absorbs
+irregular sampling where discrete models degrade 4.5× (E1), reproduces the
+true system's physical constants from its Jacobian eigenvalues (E3), and can
+be queried at time points that exist in no training data (E3).
 
-**Capability — the learned field is a genuine dynamical object.**
-1. **Continuous integration absorbs irregular sampling.** In an exact ablation
-   (same model, integration replaced by a Δt-conditioned MLP), the discrete
-   variant degrades 4.5× as sampling becomes irregular while the continuous
-   model stays flat (0.19 ± 0.02 forecast RMSE across the whole sweep; 3
-   seeds). *(Phase 1)*
-2. **The physics is recoverable from the latent.** Eigenvalues of the learned
-   field's Jacobian at its fixed point — invariant under smooth conjugacy —
-   reproduce the true system's frequency within 2–5%, with ≈0 real part for
-   the conservative system. The field can also be queried at time points that
-   exist in no training data, matching an interpolator that peeks at the
-   future to within 6%. *(Phase 5)*
+**Design anatomy** — the decoder is necessary (decoder-free training loses on
+accuracy, noise robustness and trainability, in two observation regimes; E2),
+but the latent prediction loss buys globally well-behaved field geometry that
+decoder-only training lacks (E3). The final architecture combines both.
 
-![Eigenvalue recovery](assets/phase5_eigenvalues.png)
+**Application** — dynamics-consistency scores detect anomalies (AUROC
+0.88–1.00) but latent-only scoring has a structural blind spot, fixed by a
+hybrid score (E4); one-field-per-regime classification achieves perfect
+closed-set *and* open-set performance on synthetic regimes (100% rejection of
+never-seen dynamics vs 29% for softmax; E5); real data reveals the method's
+scope condition — it classifies *dynamics laws*, not *control programs* (E6).
 
-**Design anatomy — what each component buys.**
-3. **The decoder is necessary.** Decoder-free (JEPA-style) training loses to
-   joint reconstruction on dynamics accuracy, noise robustness and
-   trainability, in two regimes (dense low-dim observations and pixels) —
-   measured with a readout-free metric after showing that observation-space
-   RMSE conflates dynamics quality with readout quality. *(Phases 2–4)*
-4. **But the latent prediction loss buys global field geometry.** The
-   JEPA-style field has its fixed point on the data manifold with clean
-   Newton convergence; the decoder-only baseline's field is untrained off its
-   rollout trajectories (Newton fails 2/6 runs). The unified model —
-   per-frame encoder + field + decoder, jointly trained — inherits detection
-   parity and is the only variant recovering the damping *sign* consistently.
-   *(Phases 5, 7)*
+---
 
-**Application — dynamics-consistency classification.**
-5. **Anomaly detection works, and latent-only scoring has a measurable blind
-   spot.** Prediction-residual scores catch impulses and regime changes
-   (AUROC 0.88–1.00), but a latent-only score is blind to observation-level
-   sensor faults (AUROC 0.78) because the encoder learns to discard
-   dynamics-irrelevant dimensions; adding a decoded observation-space stream
-   closes it (0.98). *(Phase 6)*
-6. **Open-set classification by dynamics: 100% vs 29%.** One field per
-   regime, assignment by lowest residual: perfect closed-set accuracy on four
-   synthetic regimes and **100% rejection of a never-seen regime** (Van der
-   Pol), where max-softmax rejection of a supervised GRU reaches 29%.
-   *(Phase 8)*
-7. **Scope condition, from real data.** The method classifies *dynamics laws*,
-   not *control programs*: it collapses on character trajectories (same pen
-   physics for every letter; 39% vs GRU's 96%) but keeps a 5× open-set
-   advantage on human-activity data (genuine dynamical regimes; 34% vs 7%
-   rejection). Remaining gap diagnosed: per-class encoders receive
-   off-distribution inputs — pointing to a shared-encoder architecture as the
-   next step. *(Phases 9–10)*
-
-## The unified architecture
+## The architecture
 
 ```
 x_t ──► encoder f_θ ──► z_t ──► dz/ds = g_φ(z)  (Euler/RK4 over real Δt)
@@ -79,7 +47,7 @@ x_t ──► encoder f_θ ──► z_t ──► dz/ds = g_φ(z)  (Euler/RK4 o
                          └──► decoder D ──► x̂
 ```
 
-Trained jointly with four loss terms (see `latentode/unified.py`):
+Trained jointly with four loss terms (`latentode/unified.py`):
 
 ```math
 \mathcal{L} =
@@ -88,9 +56,231 @@ Trained jointly with four loss terms (see `latentode/unified.py`):
 + \underbrace{\|D(z_t) - x_t\|^2}_{\text{reconstruction anchor}}
 ```
 
-where $`\hat z`$ denotes latents produced by *integrating the field* — the
-decoded-prediction term is the gradient path through which the decoder
-teaches $`g_\phi`$ — plus mild VICReg variance/covariance regularization.
+where $`\hat z`$ denotes latents produced by *integrating the field*: the
+decoded-prediction term is the gradient path through which the decoder teaches
+$`g_\phi`$, and the free rollout (integrating $`H`$ intervals with no
+re-encoding) is what forces $`g_\phi`$ to be a genuine vector field rather
+than a one-step residual block. Mild VICReg variance/covariance terms
+regularize the latent. Every term earned its place through the experiments
+below.
+
+---
+
+## Experiments in detail
+
+### Common setup (synthetic experiments, E1–E5)
+
+Ground-truth systems are 2-dimensional — a damped oscillator
+($`\ddot x = -\omega^2 x - \gamma \dot x`$, $`\omega=2`$, $`\gamma=0.15`$) and
+Lotka-Volterra — integrated finely with RK4. The model never sees the state:
+observations are a **fixed random MLP lift** of the state to
+$`\mathbb{R}^{50}`$ plus Gaussian noise, so the encoder must discover the 2D
+manifold on its own. Irregular sampling is controlled by a single parameter
+$`s`$: gaps are drawn as $`\Delta t \sim \Delta t_0 \cdot U(1-s,\, 1+s)`$, so
+$`s=0`$ is a regular grid and $`s=0.9`$ spans a 19× range of gap sizes with
+the same mean. Experiments report 3 seeds with ±1 std unless noted.
+
+**Evaluation is readout-free wherever possible.** Since the true state is
+known for synthetic systems, we freeze the trained encoder and field, roll
+the field forward from an encoded context, and fit a closed-form ridge
+regression from the rolled-out latents to the true state. The resulting
+**state RMSE** measures the quality of the learned *dynamics* with no
+trainable decoder in the metric — a lesson learned the hard way in E2.
+
+### E1 — Does continuous integration matter? (phase 1)
+
+**Design.** The claim "integrating a vector field handles irregular sampling"
+needs an exact control: a model identical in every respect except that
+$`\tilde z_{t+1} = z_t + \mathrm{MLP}(z_t, \Delta t)`$ replaces the
+integration — same encoder, same losses, Δt still provided as input. If the
+continuous model wins only because of capacity or the latent loss, this
+ablation wins too. We sweep $`s`$ and measure 50-step forecast RMSE (context
+10) through a frozen post-hoc decoder probe, plus a GRU forecaster and a
+classic decoder-based latent ODE for reference.
+
+![Forecast error vs sampling irregularity](assets/phase1_oscillator_gap.png)
+
+| $`s`$ | continuous (ours) | discrete JEPA | GRU | latent ODE + decoder |
+|---|---|---|---|---|
+| 0.0 | 0.190 ± .020 | **0.105 ± .006** | 0.310 ± .051 | **0.088 ± .001** |
+| 0.9 | **0.186 ± .033** | 0.471 ± .025 | 0.534 ± .023 | 0.091 ± .001 |
+
+**Reading.** Both continuous models are flat in $`s`$; both discrete models
+degrade steeply (the exact ablation by 4.5×, crossing ours at
+$`s \approx 0.35`$). Since the only difference between ours and the discrete
+JEPA is the integration, the experiment isolates the cause: **it is the ODE
+integration, not the latent loss, that absorbs irregular sampling.** Note the
+discrete model is *better* on the regular grid — with fixed Δt an
+unconstrained MLP step is easier to fit. The continuous bias pays exactly
+when sampling is irregular, which is its use case.
+
+### E2 — Is the decoder necessary? (phases 2–4)
+
+**Design.** JEPA-style training predicts in latent space with no decoder,
+using stop-gradient targets and VICReg anti-collapse instead. Is that enough —
+or does the reconstruction loss of classic latent ODEs anchor the latent in a
+way pure latent prediction cannot? We compare our decoder-free model against
+a deterministic Rubanova-style latent ODE (GRU context encoder → same field
+class → decoder, trained on reconstruction), sweeping observation noise from
+0% to 78% of total variance at $`s=0.9`$, with error measured against the
+**clean** signal (models only ever see noisy data).
+
+**The metric trap (phase 2 → 3).** Measured in observation space, our model
+looked *flat* under noise while the decoder baseline degraded 2.3× faster —
+apparently confirming that reconstruction forces the latent to model noise.
+This was an artifact: our observation-space error was dominated by the
+constant error of the frozen readout probe, which flattened the curve. The
+readout-free state-space metric reverses the verdict:
+
+![State-space accuracy under noise](assets/phase3_oscillator_state.png)
+
+The decoder-based model learns uniformly more accurate dynamics at every
+noise level (non-overlapping 3-seed bands), and both models degrade at the
+same absolute rate. **Reconstruction does not pollute the latent — it anchors
+it.**
+
+**Pixels (phase 4).** The standard argument for decoder-free training is that
+reconstructing pixels is wasteful. We rendered the oscillator as a 32×32
+pendulum video (stacked frame pairs; a single frame contains no velocity) and
+swept pixel noise up to 91% of variance — the most decoder-hostile setting we
+could build:
+
+![Pixel noise robustness](assets/phase4_pixels_state.png)
+
+The decoder baseline barely degrades (0.14 → 0.20) while the decoder-free
+model sits 4× worse everywhere, diverging at max noise in one seed — *after*
+requiring four fixes to train at all (an explicit frame-difference channel,
+EMA targets instead of strong VICReg, a LayerNorm projector, long-horizon
+rollout supervision). The decoder model trained robustly out of the box.
+**Training fragility is a real, under-reported cost of decoder-free training
+at this scale.**
+
+### E3 — Is the learned field a genuine dynamical object? (phase 5)
+
+**Eigenvalue recovery.** Eigenvalues of a system's linearization at a fixed
+point are invariant under smooth changes of coordinates — so if the latent
+field truly learned the dynamics, the Jacobian of $`g_\phi`$ at its own fixed
+point must reproduce the true system's spectrum, even though the latent
+coordinates are arbitrary. We find the fixed point by damped Newton on
+$`g_\phi(z)=0`$ and take the Jacobian by autograd:
+
+![Eigenvalue recovery](assets/phase5_eigenvalues.png)
+
+| system | theory | ours | decoder-only baseline |
+|---|---|---|---|
+| oscillator | $`-0.075 \pm 2.00i`$ | $`+0.02 \pm 2.04i`$ | $`-0.01 \pm 2.23i`$ |
+| Lotka-Volterra | $`0 \pm 2.12i`$ | $`-0.005 \pm 2.01i`$ | $`+0.04 \pm 1.82i`$ |
+
+**Reading.** The frequency is recovered within 2–5% and the conservative
+system's real part comes out ≈0 — physical constants extracted from a latent
+space trained only on lifted noisy observations. The damping
+($`-0.075`$, 27× smaller than $`\omega`$) is below seed resolution. There is
+also a structural asymmetry: our field's fixed point lies **on the data
+manifold** (0.3–1.4 latent scales, Newton converges to $`10^{-8}`$ every
+time), while the decoder-only baseline's field — trained only along rollout
+trajectories — has spurious far-off fixed points and Newton fails outright in
+2/6 runs. The latent prediction loss, applied at every frame across the whole
+manifold, buys **global field geometry** that trajectory-only training lacks.
+
+**Querying times that don't exist.** On a test grid of double resolution, the
+model observes every 2nd sample and must predict the state at the held-out
+midpoints by integrating half an interval — a time offset reachable only
+through the vector field. It lands within 6% of an interpolator that cheats
+by using the *future* observation, and 26% ahead of holding the last
+observation. A discrete-time model cannot even express this query.
+
+**Unified model (phase 7).** Combining both losses (the architecture above)
+beats decoder-free accuracy at every noise level, matches the decoder model
+on the application metrics of E4, and is the only variant that recovers the
+damping *sign* consistently across seeds. It remains ~20% behind the pure
+decoder model in raw state accuracy — an open tuning question.
+
+### E4 — Anomaly detection by dynamics consistency (phase 6)
+
+**Design.** Train on normal series only ($`s=0.5`$); inject three anomaly
+types mid-series at a random onset: a regime change
+($`\omega: 2 \to 2.5`$), a velocity impulse, and a sensor fault (10 of 50
+observation dims frozen). Score each step by its prediction residual,
+z-scored per horizon step against a normal calibration split; a series'
+score is its max. Thresholds are set at 5% false-positive rate on
+calibration. AUROC over 3 seeds:
+
+| score | regime change | impulse | sensor fault |
+|---|---|---|---|
+| latent one-step (ours) | 0.88 | 1.00 | **0.78** ⚠️ |
+| latent rollout (ours) | 0.93 | 1.00 | 0.95 |
+| hybrid latent + decoded (ours) | 0.88 | 1.00 | **0.98** |
+| GRU obs residual | 0.88 | 1.00 | 0.99 |
+| latent ODE + decoder, rollout | **1.00** | 1.00 | **1.00** |
+
+**Reading.** Three lessons. (1) The purely latent score is nearly blind to
+the sensor fault: the encoder learned to *discard* dimensions that don't
+affect the dynamics — its virtue as a representation is its flaw as a
+detector. Adding a decoded observation-space stream restores detection
+(0.78 → 0.98) at no cost elsewhere. (2) The best dynamics model is the best
+detector, and a control experiment decomposes its advantage: scoring
+*mode* accounts for half (rolling out from a clean context accumulates
+evidence against a persistent regime change — ours improves 0.88 → 0.93 by
+adopting it), dynamics accuracy for the rest. (3) One-step scores detect
+faster (median 2 vs 4 steps) but with less power — a practical
+latency/power dial.
+
+### E5 — Open-set classification on synthetic regimes (phase 8)
+
+**Design.** Four regimes as classes (standard / fast / heavily-damped
+oscillator, Lotka-Volterra). One unified model per class, trained only on
+its regime. A test series is assigned to the class whose field explains it
+best (lowest z-scored residual); if **every** class rejects it (score above
+that class's 95% calibration quantile), the series is flagged as an unknown
+regime. The baseline is a supervised GRU classifier with max-softmax
+rejection, calibrated to the same 95% in-distribution acceptance. The unseen
+regime is a Van der Pol oscillator — never seen by any model.
+
+| | closed-set accuracy | rejection of unseen regime |
+|---|---|---|
+| per-class fields (generative) | **100.0%** (768/768, 3 seeds) | **100%** |
+| supervised GRU (discriminative) | 99.6% | 29% |
+
+**Reading.** Closed-set, the generative classifier separates close regimes
+perfectly (confusion matrix diagonal across all seeds) — while never having
+seen a label. The headline is the right column: faced with dynamics that fit
+no known class, the field-based classifier says so every single time, while
+the discriminative model — structurally forced to pick a class — confidently
+misclassifies 71% of them. This rejection capability is *architectural*: a
+generative model of each regime has a notion of "none of the above" that a
+softmax cannot express.
+
+### E6 — Real data and the method's scope condition (phases 9–10)
+
+**Design.** Two real datasets, both irregularly subsampled (40 random time
+points per series) with a short Takens delay embedding (a single frame of a
+real signal does not determine the state): **CharacterTrajectories** (UCI;
+2858 pen trajectories, 20 letter classes) and **UCI HAR** (inertial signals,
+6 activities; 'downstairs' held out as the unseen regime).
+
+| dataset | generative acc | supervised GRU acc | open-set gen | open-set GRU |
+|---|---|---|---|---|
+| synthetic (E5) | 100% | 99.6% | 100% | 29% |
+| CharacterTrajectories | 39% | 96% | 33% | 43% |
+| UCI HAR | 43–57% | 91% | **34%** | 7% |
+
+**Reading.** The synthetic-to-real gap is itself the finding, in three parts.
+(1) **Scope condition**: characters share the same pen physics — letters
+differ in the *control program*, not the *dynamics law* — and the method
+collapses; human activities are genuinely different body dynamics, and the
+5× open-set advantage survives. The method classifies dynamics laws. (2)
+**Score design is non-trivial on real data**: rollout scoring (E4's winner)
+fails here because entire series belong to different classes — one-step
+scoring nearly doubles accuracy; and signed z-scores let high-residual
+classes attract easy series (a sitting series scores *suspiciously well*
+under the walking field), motivating a typicality score $`|z|`$ with its own
+trade-offs. (3) **Root cause of the remaining gap, diagnosed**: each class
+has its own encoder, so out-of-class series are off-distribution inputs and
+their residuals are noise rather than evidence. The identified fix — a
+shared encoder/decoder with per-class fields only — is the project's next
+step, and would also cut the per-class cost from a full model to one field.
+
+---
 
 ## Repository map
 
@@ -98,7 +288,7 @@ teaches $`g_\phi`$ — plus mild VICReg variance/covariance regularization.
 |---|---|
 | `latentode/` | library: data generators, models (JEPA, baselines, unified), losses, training, eval, pixel & real-data pipelines |
 | `experiments/` | one runnable script per phase (`phase0.py` … `phase10.py`) + figure scripts |
-| `results/` | committed JSON results backing every number in the docs (figures regenerable) |
+| `results/` | committed JSON results backing every number above (figures regenerable) |
 | `assets/` | key figures |
 | `docs/LAB_NOTEBOOK.md` | phase-by-phase chronological log with all tables and caveats (Spanish) |
 | `docs/NARRATIVA.md` | the findings organized into the project's narrative (Spanish) |
@@ -112,18 +302,20 @@ pip install -r requirements.txt
 bash scripts/download_data.sh   # only needed for phase 10 (UCI HAR)
 
 python3 experiments/phase0.py --system oscillator   # sanity, ~2 min CPU
-python3 experiments/phase1.py --seeds 0 1 2         # H1 sweep, ~35 min
-python3 experiments/phase3.py                       # decoder study, ~35 min
-python3 experiments/phase5_field.py                 # eigenvalue recovery, ~25 min
-python3 experiments/phase6.py                       # anomaly detection, ~15 min
-python3 experiments/phase8.py                       # open-set classifier, ~15 min
-python3 experiments/phase9.py                       # CharacterTrajectories, ~5 min/seed
-python3 experiments/phase10.py                      # UCI HAR, ~5 min/seed
+python3 experiments/phase1.py --seeds 0 1 2         # E1 sweep, ~35 min
+python3 experiments/phase3.py                       # E2 state-space study, ~35 min
+python3 experiments/phase4.py                       # E2 pixels (uses Apple MPS), ~1 h
+python3 experiments/phase5_field.py                 # E3 eigenvalues, ~25 min
+python3 experiments/phase5_e23.py                   # E3 interpolation + solver, ~15 min
+python3 experiments/phase6.py                       # E4 anomaly detection, ~15 min
+python3 experiments/phase7_unified.py               # unified-model validation, ~30 min
+python3 experiments/phase8.py                       # E5 open-set classifier, ~15 min
+python3 experiments/phase9.py                       # E6 CharacterTrajectories, ~5 min/seed
+python3 experiments/phase10.py                      # E6 UCI HAR, ~5 min/seed
 ```
 
-Phase 4 (pixels) uses Apple MPS if available. Figure scripts
-(`experiments/plot_phase*.py`) regenerate all PNGs from the committed JSONs.
-All experiments are seeded; the committed `results/*.json` files contain the
+All experiments are seeded; figure scripts (`experiments/plot_phase*.py`)
+regenerate every PNG from the committed `results/*.json`, which contain the
 exact numbers reported above.
 
 ## Data
@@ -150,7 +342,8 @@ classification by dynamics consistency.
 
 Synthetic systems are low-dimensional; real-data classification still trails
 a supervised GRU in closed-set accuracy (the open-set advantage is the
-method's edge). Identified next step: shared encoder/decoder with per-class
+method's edge); the unified model trails the pure decoder model ~20% in raw
+state accuracy. Identified next step: shared encoder/decoder with per-class
 fields only (fixes off-distribution encoding, cuts per-class cost). Also
 open: damping recovery below seed resolution, a Neural CDE baseline,
 PhysioNet, and a stochastic (SDE) field.
