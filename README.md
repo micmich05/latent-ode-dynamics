@@ -252,6 +252,31 @@ acciones bajo sampling irregular.
   Esa es la capacidad que justifica el enfoque. Limitación a declarar: el
   costo escala linealmente con el número de clases (un campo por régimen).
 
+- **Fases 9–10 (hechas)** — el reality check en datos reales, con dos
+  hallazgos estructurales y un problema abierto:
+
+  | dataset | acc gen | acc GRU sup. | open-set gen | open-set GRU |
+  |---|---|---|---|---|
+  | sintéticos (Fase 8) | 100% | 99.6% | 100% | 29% |
+  | CharacterTrajectories (18 clases) | 39% | 96% | 33% | 43% |
+  | UCI HAR (5 actividades) | 43–57% | 91% | 34% | 7% |
+
+  (1) **Condición de alcance**: el método clasifica *leyes dinámicas*, no
+  *programas de control*. En caracteres, la física de la lapicera es la misma
+  para todas las letras — solo cambia el programa del trazo — y el método
+  colapsa (39%); en actividades humanas, que sí son regímenes dinámicos
+  distintos, funciona mejor y la ventaja open-set persiste (34% vs 7%, 5×).
+  (2) **El scoring es sutil en datos reales**: el z-score con signo convierte
+  a las clases de residual grande en atractores de series fáciles (sitting →
+  "walking"); el score de tipicidad $`|z|`$ lo corrige pero degrada otras
+  clases. En sintéticos ninguno de estos efectos aparece — escalas de residual
+  homogéneas. (3) **Problema abierto (siguiente paso)**: cada clase tiene su
+  propio encoder, entrenado solo con su clase — una serie ajena entra como
+  input off-distribution y el residual es ruido, no evidencia. La arquitectura
+  correcta es **encoder y decoder compartidos + un campo $`g_\phi^{(c)}`$ por
+  clase**, entrenados juntos: comparación de campos en un espacio latente
+  común, y costo por clase reducido al campo solamente.
+
 ## Aplicación objetivo: clasificación por consistencia dinámica
 
 La dirección aplicada del proyecto: usar el campo aprendido para detectar

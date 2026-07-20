@@ -32,11 +32,26 @@ UNSEEN_CHARS = ["w", "z"]
 
 
 @torch.no_grad()
-def residual_series(model, obs, times):
+def residual_rollout(model, obs, times):
     z_c = model.encode(obs[:, CONTEXT - 1])
     dts = times[:, CONTEXT:] - times[:, CONTEXT - 1:-1]
     preds = model.decoder(model.rollout(z_c, dts))
     return (preds - obs[:, CONTEXT:]).norm(dim=-1)
+
+
+@torch.no_grad()
+def residual_onestep(model, obs, times):
+    """Local test at every step: does this field explain this motion? No
+    drift accumulation — the right scoring when whole series differ in class."""
+    z = model.encode(obs)
+    dts = times[:, 1:] - times[:, :-1]
+    B, T, d = z.shape
+    pred = model.step(z[:, :-1].reshape(-1, d), dts.reshape(-1)).reshape(B, T - 1, d)
+    return (model.decoder(pred) - obs[:, 1:]).norm(dim=-1)
+
+
+RESIDUALS = {"rollout": residual_rollout, "onestep": residual_onestep}
+residual_series = residual_onestep  # default; overridden by --score
 
 
 class ClassField:
@@ -51,8 +66,12 @@ class ClassField:
         self.tau = self.score(calib_split["obs"], calib_split["times"]).quantile(0.95)
 
     def score(self, obs, times):
+        """Mean |z| of the residual profile: a series belongs to a class if its
+        residuals look TYPICAL for that class — suspiciously low is also
+        evidence against (an easy/static series under a hard class's field
+        z-scores far below that class's calibration and must not win)."""
         r = residual_series(self.model, obs, times)
-        return ((r - self.mu) / self.sd).mean(dim=1)
+        return ((r - self.mu) / self.sd).abs().mean(dim=1)
 
 
 class GRUClassifier(nn.Module):
@@ -132,7 +151,11 @@ def main():
     p.add_argument("--seeds", type=int, nargs="+", default=[0])
     p.add_argument("--epochs", type=int, default=300)
     p.add_argument("--d", type=int, default=12)
+    p.add_argument("--score", default="onestep", choices=list(RESIDUALS))
     args = p.parse_args()
+
+    global residual_series
+    residual_series = RESIDUALS[args.score]
 
     results = {"args": vars(args), "unseen": UNSEEN_CHARS, "runs": []}
     for seed in args.seeds:
