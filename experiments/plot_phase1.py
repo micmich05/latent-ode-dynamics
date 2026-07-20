@@ -32,9 +32,19 @@ def main():
     fig, ax = plt.subplots(figsize=(7.2, 4.6), facecolor="#fcfcfb")
     ax.set_facecolor("#fcfcfb")
     for key, (label, color) in MODELS.items():
-        rmse = [row["models"][key]["mean_rmse"] for row in data["sweep"]]
-        ax.plot(jitters, rmse, color=color, lw=2, marker="o", ms=6, label=label)
-        ax.annotate(label, (jitters[-1], rmse[-1]), xytext=(8, 0),
+        cells = [row["models"][key] for row in data["sweep"]]
+        # single-seed rows are dicts; multi-seed rows are lists of dicts
+        per_seed = [[c["mean_rmse"]] if isinstance(c, dict)
+                    else [fc["mean_rmse"] for fc in c] for c in cells]
+        mean = [sum(v) / len(v) for v in per_seed]
+        std = [(sum((x - m) ** 2 for x in v) / len(v)) ** 0.5
+               for v, m in zip(per_seed, mean)]
+        ax.plot(jitters, mean, color=color, lw=2, marker="o", ms=6, label=label)
+        if any(s > 0 for s in std):
+            ax.fill_between(jitters, [m - s for m, s in zip(mean, std)],
+                            [m + s for m, s in zip(mean, std)], color=color,
+                            alpha=0.15, lw=0)
+        ax.annotate(label, (jitters[-1], mean[-1]), xytext=(8, 0),
                     textcoords="offset points", va="center", fontsize=9, color="#3d3d3a")
 
     ax.set_xlabel("sampling irregularity s   (Δt ~ Δt₀·U(1−s, 1+s))", fontsize=10)

@@ -47,7 +47,7 @@ def main():
     p.add_argument("--jitters", type=float, nargs="+", default=[0.0, 0.3, 0.6, 0.9])
     p.add_argument("--d", type=int, default=8)
     p.add_argument("--epochs", type=int, default=300)
-    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--seeds", type=int, nargs="+", default=[0])
     args = p.parse_args()
 
     n_obs = 50
@@ -62,15 +62,16 @@ def main():
 
     results = {"args": vars(args), "sweep": []}
     for s in args.jitters:
-        data = make_dataset(system=args.system, jitter=s, seed=args.seed)
-        row = {"jitter": s, "models": {}}
-        for name, build in builders.items():
-            torch.manual_seed(args.seed)
-            t0 = time.time()
-            fc = runners[name](build(), data, args.seed, args.epochs)
-            row["models"][name] = fc
-            print(f"jitter={s:.1f} {name:6s} rmse={fc['mean_rmse']:.4f} ({time.time()-t0:.0f}s)",
-                  flush=True)
+        row = {"jitter": s, "models": {name: [] for name in builders}}
+        for seed in args.seeds:
+            data = make_dataset(system=args.system, jitter=s, seed=seed)
+            for name, build in builders.items():
+                torch.manual_seed(seed)
+                t0 = time.time()
+                fc = runners[name](build(), data, seed, args.epochs)
+                row["models"][name].append(fc)
+                print(f"jitter={s:.1f} seed={seed} {name:6s} rmse={fc['mean_rmse']:.4f} "
+                      f"({time.time()-t0:.0f}s)", flush=True)
         results["sweep"].append(row)
 
     results_dir = Path(__file__).resolve().parents[1] / "results"
@@ -79,10 +80,13 @@ def main():
     out.write_text(json.dumps(results, indent=2))
     print(f"\nsaved {out}")
 
-    print(f"\n{'jitter':>6s} | " + " | ".join(f"{m:>8s}" for m in builders))
+    print(f"\n{'jitter':>6s} | " + " | ".join(f"{m:>15s}" for m in builders))
     for row in results["sweep"]:
-        print(f"{row['jitter']:6.1f} | " + " | ".join(
-            f"{row['models'][m]['mean_rmse']:8.4f}" for m in builders))
+        cells = []
+        for m in builders:
+            vals = torch.tensor([fc["mean_rmse"] for fc in row["models"][m]])
+            cells.append(f"{vals.mean():.4f} ± {vals.std().nan_to_num():.4f}")
+        print(f"{row['jitter']:6.1f} | " + " | ".join(f"{c:>15s}" for c in cells))
 
 
 if __name__ == "__main__":
