@@ -1,0 +1,122 @@
+{
+  "args": {
+    "noises": [
+      0.17
+    ],
+    "seeds": [
+      0,
+      1
+    ],
+    "d": 6,
+    "epochs": 400,
+    "n_train": 256,
+    "device": "mps",
+    "note": "rows for 0.02-0.10 recovered from killed-run log"
+  },
+  "sweep": [
+    {
+      "noise_std": 0.02,
+      "noise_share": 0.12244878709316254,
+      "models": {
+        "ours": [
+          {
+            "state_rmse": 0.5638
+          },
+          {
+            "state_rmse": 0.6893
+          }
+        ],
+        "lode": [
+          {
+            "state_rmse": 0.137
+          },
+          {
+            "state_rmse": 0.1364
+          }
+        ]
+      }
+    },
+    {
+      "noise_std": 0.05,
+      "noise_share": 0.4657246172428131,
+      "models": {
+        "ours": [
+          {
+            "state_rmse": 0.6552
+          },
+          {
+            "state_rmse": 0.6977
+          }
+        ],
+        "lode": [
+          {
+            "state_rmse": 0.1441
+          },
+          {
+            "state_rmse": 0.1345
+          }
+        ]
+      }
+    },
+    {
+      "noise_std": 0.1,
+      "noise_share": 0.7769911289215088,
+      "models": {
+        "ours": [
+          {
+            "state_rmse": 0.727
+          },
+          {
+            "state_rmse": 0.7108
+          }
+        ],
+        "lode": [
+          {
+            "state_rmse": 0.1646
+          },
+          {
+            "state_rmse": 0.1809
+          }
+        ]
+      }
+    },
+    {
+      "noise_std": 0.17,
+      "models": {
+        "ours": [
+          {
+            "state_rmse": 0.5883824490011239,
+            "state_r2": [
+              0.7544330902166689,
+              0.7340877066106646
+            ]
+          },
+          {
+            "state_rmse": 1.1152805348184414,
+            "state_r2": [
+              0.05642088425374925,
+              0.007404571100545709
+            ]
+          }
+        ],
+        "lode": [
+          {
+            "state_rmse": 0.1931195913478972,
+            "state_r2": [
+              0.9321246491240041,
+              0.9828419767412423
+            ]
+          },
+          {
+            "state_rmse": 0.2089630985460161,
+            "state_r2": [
+              0.9612238235564555,
+              0.9667034857486599
+            ]
+          }
+        ]
+      },
+      "noise_share": 0.9102479815483093
+    }
+  ]
+}

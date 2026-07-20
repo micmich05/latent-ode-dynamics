@@ -1,0 +1,118 @@
+{
+  "args": {
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "epochs": 300
+  },
+  "classes": [
+    "oscillator",
+    "osc_fast",
+    "osc_damped",
+    "lotka_volterra"
+  ],
+  "unseen": "van_der_pol",
+  "runs": [
+    {
+      "seed": 0,
+      "acc_gen": 1.0,
+      "acc_disc": 0.9921875,
+      "confusion": [
+        [
+          64,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          64,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          64,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          64
+        ]
+      ],
+      "openset_reject_gen": 1.0,
+      "openset_reject_disc": 0.296875
+    },
+    {
+      "seed": 1,
+      "acc_gen": 1.0,
+      "acc_disc": 1.0,
+      "confusion": [
+        [
+          64,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          64,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          64,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          64
+        ]
+      ],
+      "openset_reject_gen": 1.0,
+      "openset_reject_disc": 0.234375
+    },
+    {
+      "seed": 2,
+      "acc_gen": 1.0,
+      "acc_disc": 0.99609375,
+      "confusion": [
+        [
+          64,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          64,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          64,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          64
+        ]
+      ],
+      "openset_reject_gen": 1.0,
+      "openset_reject_disc": 0.328125
+    }
+  ]
+}

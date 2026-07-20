@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
 .DS_Store
-results/
+results/*.png
 data/
 !data/mixoutALL_shifted.mat

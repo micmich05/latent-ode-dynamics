@@ -1,0 +1,25 @@
+{
+  "args": {
+    "seeds": [
+      0
+    ],
+    "epochs": 300,
+    "d": 12,
+    "score": "onestep"
+  },
+  "unseen": [
+    "w",
+    "z"
+  ],
+  "runs": [
+    {
+      "seed": 0,
+      "acc_gen": 0.3896353166986564,
+      "acc_disc": 0.9596928982725528,
+      "openset_reject_gen": 0.3333333432674408,
+      "openset_reject_disc": 0.4333333373069763,
+      "n_test": 521,
+      "n_unseen": 60
+    }
+  ]
+}

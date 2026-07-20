@@ -1,0 +1,264 @@
+{
+  "args": {
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "epochs": 300
+  },
+  "runs": [
+    {
+      "seed": 0,
+      "model": "ours",
+      "metrics": {
+        "param": {
+          "auroc": 0.863525390625,
+          "detect_rate": 0.796875,
+          "median_delay": 2.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.7919921875,
+          "detect_rate": 0.6875,
+          "median_delay": 4.0
+        }
+      }
+    },
+    {
+      "seed": 0,
+      "model": "ours+probe",
+      "metrics": {
+        "param": {
+          "auroc": 0.862548828125,
+          "detect_rate": 0.796875,
+          "median_delay": 2.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.943603515625,
+          "detect_rate": 0.921875,
+          "median_delay": 5.0
+        }
+      }
+    },
+    {
+      "seed": 0,
+      "model": "gru",
+      "metrics": {
+        "param": {
+          "auroc": 0.8447265625,
+          "detect_rate": 0.703125,
+          "median_delay": 5.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.974365234375,
+          "detect_rate": 0.953125,
+          "median_delay": 3.0
+        }
+      }
+    },
+    {
+      "seed": 0,
+      "model": "lode",
+      "metrics": {
+        "param": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 4.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.99365234375,
+          "detect_rate": 0.96875,
+          "median_delay": 2.0
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "model": "ours",
+      "metrics": {
+        "param": {
+          "auroc": 0.85302734375,
+          "detect_rate": 0.59375,
+          "median_delay": 11.5
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.718017578125,
+          "detect_rate": 0.390625,
+          "median_delay": 12.0
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "model": "ours+probe",
+      "metrics": {
+        "param": {
+          "auroc": 0.849853515625,
+          "detect_rate": 0.59375,
+          "median_delay": 10.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 5.0
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "model": "gru",
+      "metrics": {
+        "param": {
+          "auroc": 0.8916015625,
+          "detect_rate": 0.71875,
+          "median_delay": 7.5
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 3.0
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "model": "lode",
+      "metrics": {
+        "param": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 4.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 2.0
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "model": "ours",
+      "metrics": {
+        "param": {
+          "auroc": 0.92822265625,
+          "detect_rate": 0.875,
+          "median_delay": 2.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.8232421875,
+          "detect_rate": 0.640625,
+          "median_delay": 6.0
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "model": "ours+probe",
+      "metrics": {
+        "param": {
+          "auroc": 0.930419921875,
+          "detect_rate": 0.875,
+          "median_delay": 2.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.9990234375,
+          "detect_rate": 1.0,
+          "median_delay": 3.0
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "model": "gru",
+      "metrics": {
+        "param": {
+          "auroc": 0.895751953125,
+          "detect_rate": 0.796875,
+          "median_delay": 4.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 0.99658203125,
+          "detect_rate": 0.984375,
+          "median_delay": 2.0
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "model": "lode",
+      "metrics": {
+        "param": {
+          "auroc": 0.99951171875,
+          "detect_rate": 1.0,
+          "median_delay": 3.0
+        },
+        "impulse": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 1.0
+        },
+        "sensor": {
+          "auroc": 1.0,
+          "detect_rate": 1.0,
+          "median_delay": 2.0
+        }
+      }
+    }
+  ]
+}
